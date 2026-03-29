@@ -29,6 +29,7 @@ Las clases se organizan en dos instancias semanales:
 | Bibliografía completa | [Link a bibliografía](https://docs.google.com/spreadsheets/d/1iKuWU7Yc_EEUsqabAkBizfgksrgC1FhG1uCD0RJZB-Q/edit?gid=283594947#gid=283594947) |
 | Clase virtual de los viernes | [Link a la clase](https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDA1Yjc2ZTMtNTk2NC00MDI0LWFiMWUtNTMyZWZhYTUxMjcy%40thread.v2/0?context=%7b%22Tid%22%3a%224c818f79-ab84-4552-9b7c-2fe715b0d0d5%22%2c%22Oid%22%3a%2277f0ea96-2e96-4a71-85cd-f693c7e6c2cd%22%7d) |
 | Clases grabadas viejas | [Link a las clases](https://docs.google.com/spreadsheets/d/1qJqhNKqZBd8fF-mceK9HD0qxr4E0L953vhowUnWI-IM/edit?gid=1693566194#gid=1693566194) |
+| Recursos adicionales | [Link a los recursos](https://docs.google.com/spreadsheets/d/1iKuWU7Yc_EEUsqabAkBizfgksrgC1FhG1uCD0RJZB-Q/edit?gid=1608576266#gid=1608576266) |
 
 ### Materiales por clase
 
