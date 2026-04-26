@@ -11,8 +11,8 @@
 
 library(nycflights13)   # Base de datos
 library(tidyverse)      # Manipulación de datos
-library(skimr)          # Resúmenes detallados
 library(janitor)        # Limpieza y tabulaciones
+library(skimr)          # Resúmenes detallados
 library(DataExplorer)   # EDA automatizado con reportes
 library(summarytools)   # dfSummary, freq, descr
 library(naniar)         # Análisis de valores faltantes
@@ -38,8 +38,9 @@ glimpse(planes)
 glimpse(weather)
 
 # Dimensiones
-map(list(flights = flights, airlines = airlines, airports = airports,
-         planes = planes, weather = weather), dim)
+lista_df <- list(flights = flights, airlines = airlines, airports = airports,
+                 planes = planes, weather = weather)
+map(lista_df, dim)
 
 # Tipos de variables
 map(list(flights, airlines, airports, planes, weather), 
@@ -70,6 +71,7 @@ dfSummary(flights, graph.col = FALSE)
 descr(flights, stats = "common")
 
 # ---- 4.2 Diagnóstico automatizado con dlookr ----
+library(dlookr)
 diagnose(flights)              # tipos, NAs, únicos
 diagnose_numeric(flights)      # mín, Q1, mediana, media, Q3, máx, outliers
 diagnose_category(flights)     # niveles, frecuencias
