@@ -8,6 +8,7 @@
 #   3) Versiones ponderadas de (1) y (2) con el paquete {survey}
 #   4) Test pareado: ¿cambió la esperanza de vida en los últimos 10 años?
 #   5) ANOVA: ¿la región del mundo afecta el PBI per cápita?
+#   6) Chi-cuadrado: ¿hay asociación entre género y nivel educativo?
 # =============================================================================
 
 
@@ -192,10 +193,10 @@ t_horario_w
 
 # Descarga
 wdi_raw <- WDI(country   = "all",
-                 indicator = c("esp_vida" = "SP.DYN.LE00.IN",
-                               "pbi_pc"   = "NY.GDP.PCAP.KD"),
-                 start     = 2013, end = 2023,
-                 extra     = TRUE)
+               indicator = c("esp_vida" = "SP.DYN.LE00.IN",
+                             "pbi_pc"   = "NY.GDP.PCAP.KD"),
+               start     = 2013, end = 2023,
+               extra     = TRUE)
 
 # Nos quedamos con países reales (no agregados regionales del BM)
 wdi_paises <- wdi_raw %>%
@@ -314,3 +315,153 @@ oneway.test(pbi_pc ~ region, data = df_anova)   # Welch-ANOVA
 library(rstatix)
 df_anova %>%
   games_howell_test(pbi_pc ~ region)
+
+
+# =============================================================================
+# 6) Test Chi-cuadrado de independencia: variables categóricas
+# =============================================================================
+# Todos los tests anteriores (t, ANOVA) comparan MEDIAS de una variable
+# numérica entre grupos. Pero a veces queremos testear si dos variables
+# CATEGÓRICAS están asociadas entre sí, sin que haya una variable numérica
+# de por medio. Para eso usamos el test chi-cuadrado de independencia.
+#
+# Pregunta: ¿Hay asociación entre el GÉNERO y el NIVEL EDUCATIVO entre los
+# asalariados argentinos? ¿O son independientes?
+#
+# H0: las variables género y nivel educativo son INDEPENDIENTES
+#     (la distribución de nivel educativo es la misma para varones y mujeres)
+# H1: las variables NO son independientes (hay asociación)
+#
+# Intuición del estadístico:
+#   Chi² = Σ (observado - esperado)² / esperado
+#   donde "esperado" es lo que veríamos si las variables fueran independientes.
+#   Si Chi² es grande, las frecuencias observadas difieren mucho de las
+#   esperadas bajo independencia -> rechazamos H0.
+#
+# Supuestos:
+#   - Observaciones independientes (cada fila es un individuo distinto).
+#   - Frecuencias esperadas suficientemente grandes (regla práctica: todas >= 5).
+#     Si alguna celda tiene frecuencia esperada < 5, R emite un warning.
+#     En ese caso conviene agrupar categorías o usar test exacto de Fisher.
+# -----------------------------------------------------------------------------
+
+# --- 6.a) Preparación: creamos la variable de nivel educativo ----------------
+# NIVEL_ED en la EPH codifica:
+#   1 = Sin instrucción / Primaria incompleta
+#   2 = Primaria completa
+#   3 = Secundaria incompleta
+#   4 = Secundaria completa
+#   5 = Superior / Universitaria incompleta
+#   6 = Superior / Universitaria completa
+#   7 = Sin información / Ns-Nr
+#   9 = Sin información (otra codificación según versión)
+
+base_chi <- base %>%
+  filter(NIVEL_ED %in% 1:6) %>%       # excluimos sin información
+  mutate(
+    nivel_ed = factor(NIVEL_ED, levels = 1:6,
+                      labels = c("< Primaria",
+                                 "Primaria",
+                                 "Sec. inc.",
+                                 "Sec. comp.",
+                                 "Sup. inc.",
+                                 "Sup. comp."))
+  )
+
+# --- 6.b) Tabla de contingencia (frecuencias observadas) ---------------------
+# Es la base de todo test chi-cuadrado: una tabla cruzada de las dos variables.
+tabla <- table(base_chi$genero, base_chi$nivel_ed)
+tabla
+
+# Agregamos totales marginales para la lectura
+addmargins(tabla)
+
+# Proporciones por fila (distribución de nivel educativo DENTRO de cada género)
+# Esto nos da una primera idea visual: si las filas se parecen, las variables
+# podrían ser independientes; si difieren, podría haber asociación.
+prop.table(tabla, margin = 1) %>% round(3)
+
+# --- 6.c) Test chi-cuadrado de Pearson ---------------------------------------
+# chisq.test() calcula el estadístico Chi², los grados de libertad
+# ((filas-1)*(columnas-1)) y el p-valor asociado.
+
+test_chi <- chisq.test(tabla)
+test_chi
+
+# Interpretación del output:
+# - X-squared : valor del estadístico Chi² de Pearson
+# - df        : grados de libertad = (nfilas - 1) * (ncols - 1)
+#               Con 2 géneros y 6 niveles: df = (2-1)*(6-1) = 5
+# - p-value   : probabilidad de observar un Chi² al menos tan grande si H0
+#               (independencia) fuese cierta
+#
+# Regla de decisión: si p-value < 0.05 rechazamos H0 al 5% -> hay evidencia
+# de asociación entre género y nivel educativo.
+
+# --- 6.d) Inspección de las frecuencias esperadas ---------------------------
+# Recordamos: el test necesita que las frecuencias esperadas sean >= 5 en
+# todas las celdas. chisq.test() las guarda en $expected.
+test_chi$expected %>% round(1)
+
+# Si alguna fuera < 5, podríamos:
+#   (a) Colapsar categorías poco frecuentes (ej: juntar "< Primaria" con "Primaria")
+#   (b) Usar test exacto de Fisher: fisher.test(tabla, simulate.p.value = TRUE)
+
+# --- 6.e) Residuos estandarizados (¿dónde está la asociación?) --------------
+# El test chi-cuadrado solo dice SI hay asociación, no DÓNDE. Los residuos de
+# Pearson estandarizados nos dicen qué celdas contribuyen más al rechazo:
+#   residuo > 0 : hay MÁS casos de los esperados bajo independencia
+#   residuo < 0 : hay MENOS casos de los esperados
+#   abs(residuo) > 2 : la celda contribuye significativamente al Chi²
+
+test_chi$residuals %>% round(2)
+
+# Ejemplo de lectura: si el residuo de (Mujer, Sup. comp.) es positivo y
+# grande, significa que hay más mujeres con educación superior completa de
+# las que esperaríamos si género y educación fueran independientes.
+
+# --- 6.f) Medida de asociación: V de Cramér ---------------------------------
+# El Chi² depende del tamaño de muestra (con n grande, casi todo es
+# significativo). La V de Cramér normaliza el Chi² para medir la INTENSIDAD
+# de la asociación en una escala de 0 a 1:
+#   V = sqrt(Chi² / (n * (min(filas, cols) - 1)))
+#   0 = independencia perfecta
+#   1 = asociación perfecta
+#   Regla empírica: V < 0.1 débil, 0.1-0.3 moderada, > 0.3 fuerte
+
+n_total <- sum(tabla)
+k       <- min(nrow(tabla), ncol(tabla))
+V_cramer <- sqrt(test_chi$statistic / (n_total * (k - 1)))
+names(V_cramer) <- "V de Cramér"
+V_cramer
+
+# --- 6.g) Ejemplo con datos del Banco Mundial (WDI) -------------------------
+# Para practicar con otra fuente: ¿hay asociación entre la REGIÓN del mundo
+# y el NIVEL DE INGRESO (income) del país?
+# Ambas son categóricas -> test chi-cuadrado.
+
+df_chi_wdi <- wdi_paises %>%
+  filter(year == 2023,
+         !is.na(region), !is.na(income),
+         income != "Not classified") %>%
+  mutate(region = factor(region),
+         income = factor(income))
+
+tabla_wdi <- table(df_chi_wdi$region, df_chi_wdi$income)
+tabla_wdi
+
+test_chi_wdi <- chisq.test(tabla_wdi, simulate.p.value = TRUE, B = 5000)
+test_chi_wdi
+# Nota: usamos simulate.p.value = TRUE porque algunas celdas pueden tener
+# frecuencia esperada < 5. La simulación (Monte Carlo con B réplicas) da un
+# p-valor válido sin depender de la aproximación asintótica.
+
+# Residuos: ¿qué combinaciones región-ingreso son inusuales?
+test_chi_wdi$residuals %>% round(2)
+
+# V de Cramér para el ejemplo WDI
+n_wdi <- sum(tabla_wdi)
+k_wdi <- min(nrow(tabla_wdi), ncol(tabla_wdi))
+V_wdi <- sqrt(chisq.test(tabla_wdi)$statistic / (n_wdi * (k_wdi - 1)))
+names(V_wdi) <- "V de Cramér"
+V_wdi
