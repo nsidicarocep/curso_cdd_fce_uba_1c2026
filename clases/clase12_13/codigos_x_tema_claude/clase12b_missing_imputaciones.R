@@ -269,12 +269,12 @@ paises_test |>
 # Si no tienen el paquete: install.packages("naniar")
 # -----------------------------------------------------------------------------
 
-# library(naniar)
-#
-# paises |>
-#   select(pib_pc, poblacion, esperanza, inflacion,
-#          gasto_edu, gasto_salud, internet) |>
-#   mcar_test()
+library(naniar)
+
+paises |>
+  select(pib_pc, poblacion, esperanza, inflacion,
+         gasto_edu, gasto_salud, internet) |>
+  mcar_test()
 
 
 # -----------------------------------------------------------------------------
@@ -353,7 +353,7 @@ paises_imp_simple |>
 # -----------------------------------------------------------------------------
 
 paises_imp_grupo <- paises |>
-  group_by(income) |>
+  group_by(region) |>
   mutate(gasto_edu_imp = ifelse(is.na(gasto_edu),
                                 median(gasto_edu, na.rm = TRUE),
                                 gasto_edu)) |>
@@ -364,10 +364,11 @@ paises_imp_grupo <- paises |>
 # heterogeneidad estructural.
 
 paises_imp_grupo |>
-  group_by(income) |>
+  group_by(region) |>
   summarise(
     n          = n(),
     n_imputado = sum(is.na(gasto_edu)),
+    media_sin_imp = round(mean(gasto_edu, na.rm = TRUE), 2),
     media_imp  = round(mean(gasto_edu_imp, na.rm = TRUE), 2),
     .groups    = "drop"
   )

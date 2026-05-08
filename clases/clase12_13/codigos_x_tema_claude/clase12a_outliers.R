@@ -75,6 +75,16 @@ paises |>
        title = "Distribución del PIB per cápita - países, 2022") +
   theme_minimal(base_size = 12)
 
+# Para ver el boxplot por region
+paises |>
+  filter(!is.na(pib_pc)) |>
+  ggplot(aes(y = pib_pc,fill=region)) +
+  geom_boxplot(alpha = 0.6, width = 0.4) +
+  scale_y_continuous(labels = label_dollar()) +
+  labs(y = "PIB per cápita (USD)",
+       title = "Distribución del PIB per cápita - países, 2022") +
+  theme_minimal(base_size = 12)
+
 # Histograma: ayuda a ver la cola derecha.
 paises |>
   filter(!is.na(pib_pc)) |>
@@ -97,10 +107,14 @@ paises |>
 # =============================================================================
 
 pib_vec <- paises$pib_pc[!is.na(paises$pib_pc)]
+# Lo mismo en Tidyverse
+pib_vec <- paises %>% 
+  filter(!is.na(pib_pc)) %>% 
+  pull(pib_pc)
 
 q1  <- quantile(pib_vec, 0.25)
 q3  <- quantile(pib_vec, 0.75)
-iqr <- IQR(pib_vec)
+iqr <- IQR(pib_vec) # Idem: q3-q1
 
 lim_inf <- q1 - 1.5 * iqr
 lim_sup <- q3 + 1.5 * iqr

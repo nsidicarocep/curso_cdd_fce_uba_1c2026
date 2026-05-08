@@ -98,6 +98,10 @@ paises_log |>
        title = "Efecto del logaritmo sobre el PIB per cápita") +
   theme_minimal(base_size = 11)
 
+ggplot(paises,aes(x=log(pib_pc),y=esperanza)) + 
+  geom_point() + 
+  geom_smooth(method = 'lm')
+
 # Conclusión visual: la versión en log es mucho más simétrica. Esa es la
 # razón por la que en economía se trabaja casi siempre con log de ingresos
 # o de PIB.
@@ -133,6 +137,13 @@ paises_std <- paises |>
     pib_z       = (pib_pc    - mean(pib_pc))    / sd(pib_pc),
     esperanza_z = (esperanza - mean(esperanza)) / sd(esperanza)
   )
+
+paises_std %>% 
+  group_by(region) %>% 
+  summarize(media_pib_pc = mean(pib_pc,na.rm=T),
+            media_esperanza = mean(esperanza,na.rm=T),
+            media_pib_pc_std = mean(pib_z,na.rm=T),
+            media_esperanza_std = mean(esperanza_z,na.rm=T))
 
 # También se puede usar la función scale() de base R, que hace lo mismo:
 # paises$pib_z <- as.numeric(scale(paises$pib_pc))
